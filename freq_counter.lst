@@ -1,0 +1,409 @@
+   1               		.file	"freq_counter.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__ = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   8               		.global __do_copy_data
+   9               		.global __do_clear_bss
+  10               		.text
+  11               	.Ltext0:
+  12               		.cfi_sections	.debug_frame
+  13               		.data
+  14               	.LC0:
+  15 0000 2564 2E00 		.string	"%d."
+  16               	.LC1:
+  17 0004 2530 3264 		.string	"%02d Hz\n"
+  17      2048 7A0A 
+  17      00
+  18               		.section	.text.startup,"ax",@progbits
+  19               	.global	main
+  21               	main:
+  22               	.LFB7:
+  23               		.file 1 "freq_counter.c"
+   1:freq_counter.c **** #include <stdlib.h>
+   2:freq_counter.c **** #include <avr/io.h>
+   3:freq_counter.c **** #include <avr/pgmspace.h>
+   4:freq_counter.c **** #include <util/delay.h>
+   5:freq_counter.c **** #include "lcd.h"
+   6:freq_counter.c **** #include <avr/interrupt.h>
+   7:freq_counter.c **** 
+   8:freq_counter.c **** #define SO_FAR_BUF_LEN          20
+   9:freq_counter.c **** #define STR_LEN                 33
+  10:freq_counter.c **** #define HIGH                    1
+  11:freq_counter.c **** #define LOW                     0
+  12:freq_counter.c **** 
+  13:freq_counter.c **** #define COUNTER_MIN_VALUE       1000
+  14:freq_counter.c **** #define CALIBRATION_CONSTANT    2000000
+  15:freq_counter.c **** 
+  16:freq_counter.c **** int main(void)
+  17:freq_counter.c **** {   
+  24               		.loc 1 17 0
+  25               		.cfi_startproc
+  26 0000 CF93      		push r28
+  27               	.LCFI0:
+  28               		.cfi_def_cfa_offset 3
+  29               		.cfi_offset 28, -2
+  30 0002 DF93      		push r29
+  31               	.LCFI1:
+  32               		.cfi_def_cfa_offset 4
+  33               		.cfi_offset 29, -3
+  34 0004 CDB7      		in r28,__SP_L__
+  35 0006 DEB7      		in r29,__SP_H__
+  36 0008 C654      		subi r28,lo8(-(-70))
+  37 000a D040      		sbci r29,hi8(-(-70))
+  38               	.LCFI2:
+  39               		.cfi_def_cfa 28, 74
+  40 000c 0FB6      		in __tmp_reg__,__SREG__
+  41 000e F894      		cli
+  42 0010 DEBF      		out __SP_H__,r29
+  43 0012 0FBE      		out __SREG__,__tmp_reg__
+  44 0014 CDBF      		out __SP_L__,r28
+  45               	/* prologue: function */
+  46               	/* frame size = 70 */
+  47               	/* stack size = 72 */
+  48               	.L__stack_usage = 72
+  18:freq_counter.c ****     DDRB &=~ (1 << PB2);
+  49               		.loc 1 18 0
+  50 0016 2298      		cbi 36-32,2
+  19:freq_counter.c ****     PORTB |= (1 << PB2);
+  51               		.loc 1 19 0
+  52 0018 2A9A      		sbi 37-32,2
+  20:freq_counter.c **** 
+  21:freq_counter.c ****     /* initialize display, cursor off */
+  22:freq_counter.c ****     lcd_init(LCD_DISP_ON);
+  53               		.loc 1 22 0
+  54 001a 8CE0      		ldi r24,lo8(12)
+  55 001c 0E94 0000 		call lcd_init
+  56               	.LVL0:
+  23:freq_counter.c **** 
+  24:freq_counter.c ****     // 32 bit count can be incremented once per clock cycle and
+  25:freq_counter.c ****     // not overflow for 2^32 / 16MHz = 268.435456 seconds
+  26:freq_counter.c ****     // Seems like a safe value
+  27:freq_counter.c ****     uint32_t counter;
+  28:freq_counter.c ****     uint32_t intermediateCounterValue;
+  29:freq_counter.c **** 
+  30:freq_counter.c ****     // Circular buffer to keep track of buffer length
+  31:freq_counter.c ****     uint32_t soFar[SO_FAR_BUF_LEN];
+  32:freq_counter.c ****     uint16_t soFarNdx = 0;
+  33:freq_counter.c ****     uint32_t avg;
+  34:freq_counter.c ****     uint16_t avgNdx = 0;
+  35:freq_counter.c **** 
+  36:freq_counter.c ****     // String to hold printing data
+  37:freq_counter.c ****     char intCountStr[STR_LEN];
+  38:freq_counter.c ****     char fraccountStr[STR_LEN];
+  39:freq_counter.c **** 
+  40:freq_counter.c ****     // Frequency variables
+  41:freq_counter.c ****     uint32_t freqInt;
+  42:freq_counter.c ****     uint32_t freqFrac;
+  43:freq_counter.c **** 
+  44:freq_counter.c ****     uint8_t lastState = PINB & _BV(PINB2);
+  57               		.loc 1 44 0
+  58 0020 83B1      		in r24,35-32
+  45:freq_counter.c ****     cli();
+  59               		.loc 1 45 0
+  60               	/* #APP */
+  61               	 ;  45 "freq_counter.c" 1
+  62 0022 F894      		cli
+  63               	 ;  0 "" 2
+  64               	/* #NOAPP */
+  65               	.LBB2:
+  46:freq_counter.c **** 
+  47:freq_counter.c ****     for (;;) {
+  48:freq_counter.c ****         // Prepare for capturing the falling edge
+  49:freq_counter.c ****         counter = 0;
+  50:freq_counter.c **** 
+  51:freq_counter.c ****         // Count while the positive pulse is done with a minimum to avoid bounce
+  52:freq_counter.c ****         while ((PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+  53:freq_counter.c ****             counter++;
+  54:freq_counter.c ****         }
+  55:freq_counter.c **** 
+  56:freq_counter.c ****         intermediateCounterValue = counter;
+  57:freq_counter.c ****         counter = 0;
+  58:freq_counter.c **** 
+  59:freq_counter.c ****         // Count while the negative pulse is done with a minimum to avoid bounce
+  60:freq_counter.c ****         while (!(PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+  61:freq_counter.c ****             counter++;
+  62:freq_counter.c ****         }
+  63:freq_counter.c **** 
+  64:freq_counter.c ****         counter += intermediateCounterValue;
+  65:freq_counter.c **** 
+  66:freq_counter.c ****         // A change happened!
+  67:freq_counter.c ****         soFar[++soFarNdx % SO_FAR_BUF_LEN] = counter;
+  68:freq_counter.c ****         // get average of soFar
+  69:freq_counter.c ****         for (avgNdx = 0; avgNdx < SO_FAR_BUF_LEN; avgNdx++) {
+  70:freq_counter.c ****             avg += soFar[avgNdx];
+  71:freq_counter.c ****         }
+  72:freq_counter.c ****         avg /= SO_FAR_BUF_LEN;
+  73:freq_counter.c **** 
+  74:freq_counter.c ****         // counter = 8340 (freq = 119.90)
+  75:freq_counter.c ****         // freqInt = 119
+  76:freq_counter.c ****         // freqFrac = 7540
+  77:freq_counter.c **** 
+  78:freq_counter.c ****         freqInt = CALIBRATION_CONSTANT / counter;
+  79:freq_counter.c ****         freqFrac = ((CALIBRATION_CONSTANT % counter) * (100)) / counter;
+  66               		.loc 1 79 0
+  67 0024 80E8      		ldi r24,lo8(2000000)
+  68 0026 482E      		mov r4,r24
+  69 0028 84E8      		ldi r24,hi8(2000000)
+  70 002a 582E      		mov r5,r24
+  71 002c 8EE1      		ldi r24,hlo8(2000000)
+  72 002e 682E      		mov r6,r24
+  73 0030 712C      		mov r7,__zero_reg__
+  80:freq_counter.c **** 
+  81:freq_counter.c ****         // Write to LCD
+  82:freq_counter.c ****         lcd_clrscr();
+  83:freq_counter.c ****         sprintf(intCountStr, "%d.", freqInt);
+  74               		.loc 1 83 0
+  75 0032 92E2      		ldi r25,lo8(34)
+  76 0034 292E      		mov r2,r25
+  77 0036 312C      		mov r3,__zero_reg__
+  78 0038 2C0E      		add r2,r28
+  79 003a 3D1E      		adc r3,r29
+  84:freq_counter.c ****         lcd_puts(intCountStr);
+  85:freq_counter.c ****         sprintf(fraccountStr, "%02d Hz\n", freqFrac);
+  80               		.loc 1 85 0
+  81 003c 8E01      		movw r16,r28
+  82 003e 0F5F      		subi r16,lo8(-(1))
+  83 0040 1F4F      		sbci r17,hi8(-(1))
+  84               	.LVL1:
+  85               	.L7:
+  49:freq_counter.c ****         counter = 0;
+  86               		.loc 1 49 0
+  87 0042 40E0      		ldi r20,lo8(0)
+  88 0044 50E0      		ldi r21,hi8(0)
+  89 0046 BA01      		movw r22,r20
+  52:freq_counter.c ****         while ((PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+  90               		.loc 1 52 0
+  91 0048 00C0      		rjmp .L2
+  92               	.LVL2:
+  93               	.L3:
+  53:freq_counter.c ****             counter++;
+  94               		.loc 1 53 0
+  95 004a 4F5F      		subi r20,lo8(-(1))
+  96 004c 5F4F      		sbci r21,hi8(-(1))
+  97 004e 6F4F      		sbci r22,hlo8(-(1))
+  98 0050 7F4F      		sbci r23,hhi8(-(1))
+  99               	.LVL3:
+ 100               	.L2:
+  52:freq_counter.c ****         while ((PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+ 101               		.loc 1 52 0 discriminator 1
+ 102 0052 1A99      		sbic 35-32,2
+ 103 0054 00C0      		rjmp .L3
+  52:freq_counter.c ****         while ((PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+ 104               		.loc 1 52 0 is_stmt 0 discriminator 2
+ 105 0056 483E      		cpi r20,lo8(1000)
+ 106 0058 23E0      		ldi r18,hi8(1000)
+ 107 005a 5207      		cpc r21,r18
+ 108 005c 20E0      		ldi r18,hlo8(1000)
+ 109 005e 6207      		cpc r22,r18
+ 110 0060 20E0      		ldi r18,hhi8(1000)
+ 111 0062 7207      		cpc r23,r18
+ 112 0064 00F0      		brlo .L3
+  52:freq_counter.c ****         while ((PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+ 113               		.loc 1 52 0
+ 114 0066 80E0      		ldi r24,lo8(0)
+ 115 0068 90E0      		ldi r25,hi8(0)
+ 116 006a DC01      		movw r26,r24
+ 117 006c 00C0      		rjmp .L4
+ 118               	.LVL4:
+ 119               	.L5:
+  61:freq_counter.c ****             counter++;
+ 120               		.loc 1 61 0 is_stmt 1
+ 121 006e 0196      		adiw r24,1
+ 122 0070 A11D      		adc r26,__zero_reg__
+ 123 0072 B11D      		adc r27,__zero_reg__
+ 124               	.LVL5:
+ 125               	.L4:
+  60:freq_counter.c ****         while (!(PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+ 126               		.loc 1 60 0 discriminator 1
+ 127 0074 1A9B      		sbis 35-32,2
+ 128 0076 00C0      		rjmp .L5
+  60:freq_counter.c ****         while (!(PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+ 129               		.loc 1 60 0 is_stmt 0 discriminator 2
+ 130 0078 883E      		cpi r24,lo8(1000)
+ 131 007a 23E0      		ldi r18,hi8(1000)
+ 132 007c 9207      		cpc r25,r18
+ 133 007e 20E0      		ldi r18,hlo8(1000)
+ 134 0080 A207      		cpc r26,r18
+ 135 0082 20E0      		ldi r18,hhi8(1000)
+ 136 0084 B207      		cpc r27,r18
+ 137 0086 00F0      		brlo .L5
+  64:freq_counter.c ****         counter += intermediateCounterValue;
+ 138               		.loc 1 64 0 is_stmt 1
+ 139 0088 6C01      		movw r12,r24
+ 140 008a 7D01      		movw r14,r26
+ 141 008c C40E      		add r12,r20
+ 142 008e D51E      		adc r13,r21
+ 143 0090 E61E      		adc r14,r22
+ 144 0092 F71E      		adc r15,r23
+ 145               	.LVL6:
+  79:freq_counter.c ****         freqFrac = ((CALIBRATION_CONSTANT % counter) * (100)) / counter;
+ 146               		.loc 1 79 0
+ 147 0094 C301      		movw r24,r6
+ 148 0096 B201      		movw r22,r4
+ 149 0098 A701      		movw r20,r14
+ 150 009a 9601      		movw r18,r12
+ 151 009c 0E94 0000 		call __udivmodsi4
+ 152 00a0 4901      		movw r8,r18
+ 153 00a2 5A01      		movw r10,r20
+ 154 00a4 24E6      		ldi r18,lo8(100)
+ 155 00a6 30E0      		ldi r19,hi8(100)
+ 156 00a8 40E0      		ldi r20,hlo8(100)
+ 157 00aa 50E0      		ldi r21,hhi8(100)
+ 158 00ac 0E94 0000 		call __mulsi3
+ 159 00b0 A701      		movw r20,r14
+ 160 00b2 9601      		movw r18,r12
+ 161 00b4 0E94 0000 		call __udivmodsi4
+  82:freq_counter.c ****         lcd_clrscr();
+ 162               		.loc 1 82 0
+ 163 00b8 2496      		adiw r28,67-63
+ 164 00ba 2FAF      		std Y+63,r18
+ 165 00bc 2497      		sbiw r28,67-63
+ 166 00be 2596      		adiw r28,68-63
+ 167 00c0 3FAF      		std Y+63,r19
+ 168 00c2 2597      		sbiw r28,68-63
+ 169 00c4 2696      		adiw r28,69-63
+ 170 00c6 4FAF      		std Y+63,r20
+ 171 00c8 2697      		sbiw r28,69-63
+ 172 00ca 2796      		adiw r28,70-63
+ 173 00cc 5FAF      		std Y+63,r21
+ 174 00ce 2797      		sbiw r28,70-63
+ 175 00d0 0E94 0000 		call lcd_clrscr
+  83:freq_counter.c ****         sprintf(intCountStr, "%d.", freqInt);
+ 176               		.loc 1 83 0
+ 177 00d4 8DB7      		in r24,__SP_L__
+ 178 00d6 9EB7      		in r25,__SP_H__
+ 179 00d8 0897      		sbiw r24,8
+ 180 00da 0FB6      		in __tmp_reg__,__SREG__
+ 181 00dc F894      		cli
+ 182 00de 9EBF      		out __SP_H__,r25
+ 183 00e0 0FBE      		out __SREG__,__tmp_reg__
+ 184 00e2 8DBF      		out __SP_L__,r24
+ 185 00e4 EDB7      		in r30,__SP_L__
+ 186 00e6 FEB7      		in r31,__SP_H__
+ 187 00e8 3196      		adiw r30,1
+ 188 00ea ADB7      		in r26,__SP_L__
+ 189 00ec BEB7      		in r27,__SP_H__
+ 190 00ee 1296      		adiw r26,1+1
+ 191 00f0 3C92      		st X,r3
+ 192 00f2 2E92      		st -X,r2
+ 193 00f4 1197      		sbiw r26,1
+ 194 00f6 80E0      		ldi r24,lo8(.LC0)
+ 195 00f8 90E0      		ldi r25,hi8(.LC0)
+ 196 00fa 9383      		std Z+3,r25
+ 197 00fc 8283      		std Z+2,r24
+ 198 00fe 8482      		std Z+4,r8
+ 199 0100 9582      		std Z+5,r9
+ 200 0102 A682      		std Z+6,r10
+ 201 0104 B782      		std Z+7,r11
+ 202               		.cfi_escape 0x2e,0x8
+ 203 0106 0E94 0000 		call sprintf
+  84:freq_counter.c ****         lcd_puts(intCountStr);
+ 204               		.loc 1 84 0
+ 205 010a ADB7      		in r26,__SP_L__
+ 206 010c BEB7      		in r27,__SP_H__
+ 207 010e 1896      		adiw r26,8
+ 208 0110 0FB6      		in __tmp_reg__,__SREG__
+ 209 0112 F894      		cli
+ 210 0114 BEBF      		out __SP_H__,r27
+ 211 0116 0FBE      		out __SREG__,__tmp_reg__
+ 212 0118 ADBF      		out __SP_L__,r26
+ 213 011a C101      		movw r24,r2
+ 214               		.cfi_escape 0x2e,0
+ 215 011c 0E94 0000 		call lcd_puts
+ 216               		.loc 1 85 0
+ 217 0120 8DB7      		in r24,__SP_L__
+ 218 0122 9EB7      		in r25,__SP_H__
+ 219 0124 0897      		sbiw r24,8
+ 220 0126 0FB6      		in __tmp_reg__,__SREG__
+ 221 0128 F894      		cli
+ 222 012a 9EBF      		out __SP_H__,r25
+ 223 012c 0FBE      		out __SREG__,__tmp_reg__
+ 224 012e 8DBF      		out __SP_L__,r24
+ 225 0130 EDB7      		in r30,__SP_L__
+ 226 0132 FEB7      		in r31,__SP_H__
+ 227 0134 3196      		adiw r30,1
+ 228 0136 ADB7      		in r26,__SP_L__
+ 229 0138 BEB7      		in r27,__SP_H__
+ 230 013a 1296      		adiw r26,1+1
+ 231 013c 1C93      		st X,r17
+ 232 013e 0E93      		st -X,r16
+ 233 0140 1197      		sbiw r26,1
+ 234 0142 80E0      		ldi r24,lo8(.LC1)
+ 235 0144 90E0      		ldi r25,hi8(.LC1)
+ 236 0146 9383      		std Z+3,r25
+ 237 0148 8283      		std Z+2,r24
+ 238 014a 2496      		adiw r28,67-63
+ 239 014c 2FAD      		ldd r18,Y+63
+ 240 014e 2497      		sbiw r28,67-63
+ 241 0150 2483      		std Z+4,r18
+ 242 0152 2596      		adiw r28,68-63
+ 243 0154 3FAD      		ldd r19,Y+63
+ 244 0156 2597      		sbiw r28,68-63
+ 245 0158 3583      		std Z+5,r19
+ 246 015a 2696      		adiw r28,69-63
+ 247 015c 4FAD      		ldd r20,Y+63
+ 248 015e 2697      		sbiw r28,69-63
+ 249 0160 4683      		std Z+6,r20
+ 250 0162 2796      		adiw r28,70-63
+ 251 0164 5FAD      		ldd r21,Y+63
+ 252 0166 2797      		sbiw r28,70-63
+ 253 0168 5783      		std Z+7,r21
+ 254               		.cfi_escape 0x2e,0x8
+ 255 016a 0E94 0000 		call sprintf
+  86:freq_counter.c ****         lcd_puts(fraccountStr);
+ 256               		.loc 1 86 0
+ 257 016e ADB7      		in r26,__SP_L__
+ 258 0170 BEB7      		in r27,__SP_H__
+ 259 0172 1896      		adiw r26,8
+ 260 0174 0FB6      		in __tmp_reg__,__SREG__
+ 261 0176 F894      		cli
+ 262 0178 BEBF      		out __SP_H__,r27
+ 263 017a 0FBE      		out __SREG__,__tmp_reg__
+ 264 017c ADBF      		out __SP_L__,r26
+ 265 017e C801      		movw r24,r16
+ 266               		.cfi_escape 0x2e,0
+ 267 0180 0E94 0000 		call lcd_puts
+ 268               	.LVL7:
+ 269               	.L6:
+  87:freq_counter.c **** 
+  88:freq_counter.c ****         // Wait again for the bounce to stop
+  89:freq_counter.c ****         counter = 0;
+  90:freq_counter.c ****         while (counter < COUNTER_MIN_VALUE) {
+  91:freq_counter.c ****             counter++;
+  92:freq_counter.c ****         }
+  93:freq_counter.c **** 
+  94:freq_counter.c ****         // Wait until the negative pulse is done
+  95:freq_counter.c ****         while (!(PINB & (1 << PINB2)))
+ 270               		.loc 1 95 0 discriminator 1
+ 271 0184 1A9B      		sbis 35-32,2
+ 272 0186 00C0      		rjmp .L6
+ 273 0188 00C0      		rjmp .L7
+ 274               	.LBE2:
+ 275               		.cfi_endproc
+ 276               	.LFE7:
+ 278               		.text
+ 279               	.Letext0:
+ 280               		.file 2 "/usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/../../../../avr/include/stdint.h"
+ 281               		.file 3 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 freq_counter.c
+      freq_counter.s:2      *ABS*:0000003f __SREG__
+      freq_counter.s:3      *ABS*:0000003e __SP_H__
+      freq_counter.s:4      *ABS*:0000003d __SP_L__
+      freq_counter.s:5      *ABS*:00000034 __CCP__
+      freq_counter.s:6      *ABS*:00000000 __tmp_reg__
+      freq_counter.s:7      *ABS*:00000001 __zero_reg__
+      freq_counter.s:21     .text.startup:00000000 main
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+lcd_init
+__udivmodsi4
+__mulsi3
+lcd_clrscr
+sprintf
+lcd_puts
