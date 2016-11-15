@@ -5,13 +5,17 @@
 #include "lcd.h"
 #include <avr/interrupt.h>
 
-#define SO_FAR_BUF_LEN          20
+#define AVG_AMT                 50
 #define STR_LEN                 33
 #define HIGH                    1
 #define LOW                     0
 
 #define COUNTER_MIN_VALUE       1000
-#define CALIBRATION_CONSTANT    1000000
+#define CALIBRATION_CONSTANT    49950000
+
+// counter = 8340 (freq = 119.90)
+// freqInt = 119
+// freqFrac = 7540
 
 int main(void)
 {   
@@ -27,7 +31,7 @@ int main(void)
     uint32_t counter;
 
     // Circular buffer to keep track of buffer length
-    uint32_t soFar[SO_FAR_BUF_LEN];
+    uint32_t soFar[AVG_AMT];
     uint16_t soFarNdx = 0;
     uint32_t avg;
     uint16_t avgNdx = 0;
@@ -53,26 +57,35 @@ int main(void)
         }
 
         // A change happened!
-        soFar[++soFarNdx % SO_FAR_BUF_LEN] = counter;
-        // get average of soFar
-        for (avgNdx = 0; avgNdx < SO_FAR_BUF_LEN; avgNdx++) {
-            avg += soFar[avgNdx];
+        // soFarNdx goes from 0 to 19 then back to 0.
+        soFar[soFarNdx] = counter;
+        soFarNdx = (soFarNdx + 1) % AVG_AMT;
+
+        if (soFarNdx == AVG_AMT - 1) {
+
+            avg = 0;
+            // get average of soFar
+            for (avgNdx = 0; avgNdx < AVG_AMT; avgNdx++) {
+                avg += (soFar[avgNdx]);
+            }
+            // avg /= AVG_AMT;
+
+            // avg is AVG_AMT x the actual value
+    
+            freqInt = CALIBRATION_CONSTANT / avg;
+            freqFrac = ((CALIBRATION_CONSTANT % avg) * 1000) / avg;
+    
+            // Write to LCD
+            lcd_clrscr();
+            sprintf(intCountStr, "%lu.", freqInt);
+            lcd_puts(intCountStr);
+            sprintf(fraccountStr, "%03lu Hz\n", freqFrac);
+            lcd_puts(fraccountStr);
+            sprintf(fraccountStr, "%lu\n", counter);
+            lcd_puts(fraccountStr);
+            sprintf(fraccountStr, "%lu\n", avg);
+            lcd_puts(fraccountStr);
         }
-        avg /= SO_FAR_BUF_LEN;
-
-        // counter = 8340 (freq = 119.90)
-        // freqInt = 119
-        // freqFrac = 7540
-
-        freqInt = CALIBRATION_CONSTANT / counter;
-        freqFrac = ((CALIBRATION_CONSTANT % counter) * (100)) / counter;
-
-        // Write to LCD
-        lcd_clrscr();
-        sprintf(intCountStr, "%d.", freqInt);
-        lcd_puts(intCountStr);
-        sprintf(fraccountStr, "%02d Hz\n", freqFrac);
-        lcd_puts(fraccountStr);
 
         // Wait again for the bounce to stop
         counter = 0;

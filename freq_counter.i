@@ -709,7 +709,7 @@ extern void lcd_data(uint8_t data);
 # 6 "freq_counter.c" 2
 # 1 "/usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/../../../../avr/include/avr/interrupt.h" 1 3
 # 7 "freq_counter.c" 2
-# 16 "freq_counter.c"
+# 20 "freq_counter.c"
 int main(void)
 {
     (*(volatile uint8_t *)((0x04) + 0x20)) &=~ (1 << 2);
@@ -722,10 +722,9 @@ int main(void)
 
 
     uint32_t counter;
-    uint32_t intermediateCounterValue;
 
 
-    uint32_t soFar[20];
+    uint32_t soFar[50];
     uint16_t soFarNdx = 0;
     uint32_t avg;
     uint16_t avgNdx = 0;
@@ -750,37 +749,36 @@ int main(void)
             counter++;
         }
 
-        intermediateCounterValue = counter;
-        counter = 0;
 
 
-        while (!((*(volatile uint8_t *)((0x03) + 0x20)) & (1 << 2)) || (counter < 1000)) {
-            counter++;
+        soFar[soFarNdx] = counter;
+        soFarNdx = (soFarNdx + 1) % 50;
+
+        if (soFarNdx == 50 - 1) {
+
+            avg = 0;
+
+            for (avgNdx = 0; avgNdx < 50; avgNdx++) {
+                avg += (soFar[avgNdx]);
+            }
+
+
+
+
+            freqInt = 49950000 / avg;
+            freqFrac = ((49950000 % avg) * 1000) / avg;
+
+
+            lcd_clrscr();
+            sprintf(intCountStr, "%lu.", freqInt);
+            lcd_puts(intCountStr);
+            sprintf(fraccountStr, "%03lu Hz\n", freqFrac);
+            lcd_puts(fraccountStr);
+            sprintf(fraccountStr, "%lu\n", counter);
+            lcd_puts(fraccountStr);
+            sprintf(fraccountStr, "%lu\n", avg);
+            lcd_puts(fraccountStr);
         }
-
-        counter += intermediateCounterValue;
-
-
-        soFar[++soFarNdx % 20] = counter;
-
-        for (avgNdx = 0; avgNdx < 20; avgNdx++) {
-            avg += soFar[avgNdx];
-        }
-        avg /= 20;
-
-
-
-
-
-        freqInt = 2000000 / counter;
-        freqFrac = ((2000000 % counter) * (100)) / counter;
-
-
-        lcd_clrscr();
-        sprintf(intCountStr, "%d.", freqInt);
-        lcd_puts(intCountStr);
-        sprintf(fraccountStr, "%02d Hz\n", freqFrac);
-        lcd_puts(fraccountStr);
 
 
         counter = 0;
