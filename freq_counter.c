@@ -5,7 +5,7 @@
 #include "lcd.h"
 #include <avr/interrupt.h>
 
-#define SO_FAR_BUF_LEN          20
+
 #define STR_LEN                 33
 #define HIGH                    1
 #define LOW                     0
@@ -13,10 +13,15 @@
 #define COUNTER_MIN_VALUE       1000
 #define CALIBRATION_CONSTANT    1000000
 
+#define AVG_AMT                 10
+#define LCD_WRITE_RATE          10
+
 int main(void)
 {   
     DDRB &=~ (1 << PB2);
     PORTB |= (1 << PB2);
+
+    DDRB |= (1 << PB3);
 
     /* initialize display, cursor off */
     lcd_init(LCD_DISP_ON);
@@ -25,12 +30,16 @@ int main(void)
     // not overflow for 2^32 / 16MHz = 268.435456 seconds
     // Seems like a safe value
     uint32_t counter;
+    uint32_t intermediateCounterValue;
 
     // Circular buffer to keep track of buffer length
-    uint32_t soFar[SO_FAR_BUF_LEN];
+    uint32_t soFar[AVG_AMT];
     uint16_t soFarNdx = 0;
     uint32_t avg;
     uint16_t avgNdx = 0;
+
+    // Should we write to the LCD
+    int lcdWrite = 0;
 
     // String to hold printing data
     char intCountStr[STR_LEN];
@@ -47,32 +56,44 @@ int main(void)
         // Prepare for capturing the falling edge
         counter = 0;
 
-        // Count while the positive pulse is done with a minimum to avoid bounce
+        PORTB |= (1 << PB3);
+
+        // Count while the positive pulse is happening with a minimum to avoid bounce
         while ((PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
             counter++;
         }
 
+        intermediateCounterValue = counter;
+        counter = 0;
+
+        // Count while the negative pulse is happening with a minimum to avoid bounce
+        while (!(PINB & (1 << PINB2)) || (counter < COUNTER_MIN_VALUE)) {
+            counter++;
+        }
+
+        PORTB &= ~(1 << PB3);
+        
+
+        counter += intermediateCounterValue;
+
         // A change happened!
-        soFar[++soFarNdx % SO_FAR_BUF_LEN] = counter;
+        soFar[++soFarNdx % AVG_AMT] = counter;
+
         // get average of soFar
-        for (avgNdx = 0; avgNdx < SO_FAR_BUF_LEN; avgNdx++) {
+        for (avgNdx = 0; avgNdx < AVG_AMT; avgNdx++) {
             avg += soFar[avgNdx];
         }
-        avg /= SO_FAR_BUF_LEN;
+        avg /= AVG_AMT;
+    
+        freqInt = CALIBRATION_CONSTANT / avg;
+        freqFrac = ((CALIBRATION_CONSTANT % counter) * (100)) / avg;
 
-        // counter = 8340 (freq = 119.90)
-        // freqInt = 119
-        // freqFrac = 7540
-
-        freqInt = CALIBRATION_CONSTANT / counter;
-        freqFrac = ((CALIBRATION_CONSTANT % counter) * (100)) / counter;
-
-        // Write to LCD
-        lcd_clrscr();
-        sprintf(intCountStr, "%d.", freqInt);
-        lcd_puts(intCountStr);
-        sprintf(fraccountStr, "%02d Hz\n", freqFrac);
-        lcd_puts(fraccountStr);
+        // //Write to LCD
+        // lcd_clrscr();
+        // sprintf(intCountStr, "%d.", freqInt);
+        // lcd_puts(intCountStr);
+        // sprintf(fraccountStr, "%02d Hz\n", freqFrac);
+        // lcd_puts(fraccountStr);
 
         // Wait again for the bounce to stop
         counter = 0;
@@ -80,8 +101,22 @@ int main(void)
             counter++;
         }
 
+        // Wait until the positive pulse is done
+        while ((PINB & (1 << PINB2)))
+            ;
+
+        // Wait again for the bounce to stop
+        counter = 0;
+        while (counter < COUNTER_MIN_VALUE) {
+            counter++;
+        }
+
+
         // Wait until the negative pulse is done
         while (!(PINB & (1 << PINB2)))
             ;
+        
+
+        lcdWrite = (lcdWrite + 1) % LCD_WRITE_RATE;
     }
 }

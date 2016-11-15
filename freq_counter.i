@@ -709,11 +709,13 @@ extern void lcd_data(uint8_t data);
 # 6 "freq_counter.c" 2
 # 1 "/usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/../../../../avr/include/avr/interrupt.h" 1 3
 # 7 "freq_counter.c" 2
-# 16 "freq_counter.c"
+# 19 "freq_counter.c"
 int main(void)
 {
     (*(volatile uint8_t *)((0x04) + 0x20)) &=~ (1 << 2);
     (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << 2);
+
+    (*(volatile uint8_t *)((0x04) + 0x20)) |= (1 << 3);
 
 
     lcd_init(0x0C);
@@ -725,10 +727,13 @@ int main(void)
     uint32_t intermediateCounterValue;
 
 
-    uint32_t soFar[20];
+    uint32_t soFar[100];
     uint16_t soFarNdx = 0;
     uint32_t avg;
     uint16_t avgNdx = 0;
+
+
+    int lcdWrite = 0;
 
 
     char intCountStr[33];
@@ -745,6 +750,8 @@ int main(void)
 
         counter = 0;
 
+        (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << 3);
+
 
         while (((*(volatile uint8_t *)((0x03) + 0x20)) & (1 << 2)) || (counter < 1000)) {
             counter++;
@@ -758,29 +765,31 @@ int main(void)
             counter++;
         }
 
+        (*(volatile uint8_t *)((0x05) + 0x20)) &= ~(1 << 3);
+
+
         counter += intermediateCounterValue;
 
 
-        soFar[++soFarNdx % 20] = counter;
+        soFar[++soFarNdx % 100] = counter;
 
-        for (avgNdx = 0; avgNdx < 20; avgNdx++) {
+
+        for (avgNdx = 0; avgNdx < 100; avgNdx++) {
             avg += soFar[avgNdx];
         }
-        avg /= 20;
+        avg /= 100;
+
+        freqInt = 1000000 / avg;
+        freqFrac = ((1000000 % counter) * (100)) / avg;
+# 99 "freq_counter.c"
+        counter = 0;
+        while (counter < 1000) {
+            counter++;
+        }
 
 
-
-
-
-        freqInt = 2000000 / counter;
-        freqFrac = ((2000000 % counter) * (100)) / counter;
-
-
-        lcd_clrscr();
-        sprintf(intCountStr, "%d.", freqInt);
-        lcd_puts(intCountStr);
-        sprintf(fraccountStr, "%02d Hz\n", freqFrac);
-        lcd_puts(fraccountStr);
+        while (((*(volatile uint8_t *)((0x03) + 0x20)) & (1 << 2)))
+            ;
 
 
         counter = 0;
@@ -789,7 +798,11 @@ int main(void)
         }
 
 
+
         while (!((*(volatile uint8_t *)((0x03) + 0x20)) & (1 << 2)))
             ;
+
+
+        lcdWrite = (lcdWrite + 1) % 10;
     }
 }

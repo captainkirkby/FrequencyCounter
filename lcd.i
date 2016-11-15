@@ -590,57 +590,57 @@ static void lcd_write(uint8_t data,uint8_t rs)
     }
     (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (5));
 
-    if ( ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20))) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) ) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) )
+    if ( ( &(*(volatile uint8_t *)((0x05) + 0x20)) == &(*(volatile uint8_t *)((0x05) + 0x20))) && ( &(*(volatile uint8_t *)((0x05) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) ) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) )
       && (0 == 0) && (1 == 1) && (2 == 2) && (3 == 3) )
     {
 
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= 0x0F;
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) |= 0x0F;
 
 
-        dataBits = (*(volatile uint8_t *)((0x0B) + 0x20)) & 0xF0;
-        (*(volatile uint8_t *)((0x0B) + 0x20)) = dataBits |((data>>4)&0x0F);
+        dataBits = (*(volatile uint8_t *)((0x05) + 0x20)) & 0xF0;
+        (*(volatile uint8_t *)((0x05) + 0x20)) = dataBits |((data>>4)&0x0F);
         toggle_e();
 
 
-        (*(volatile uint8_t *)((0x0B) + 0x20)) = dataBits | (data&0x0F);
+        (*(volatile uint8_t *)((0x05) + 0x20)) = dataBits | (data&0x0F);
         toggle_e();
 
 
-        (*(volatile uint8_t *)((0x0B) + 0x20)) = dataBits | 0x0F;
+        (*(volatile uint8_t *)((0x05) + 0x20)) = dataBits | 0x0F;
     }
     else
     {
 
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (0));
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (1));
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) |= (1 << (0));
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) |= (1 << (1));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (2));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (3));
 
 
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (3));
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (2));
-        (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (1));
-        (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (0));
+        (*(volatile uint8_t *)((0x05) + 0x20)) &= ~(1 << (1));
+        (*(volatile uint8_t *)((0x05) + 0x20)) &= ~(1 << (0));
      if(data & 0x80) (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (3));
      if(data & 0x40) (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (2));
-     if(data & 0x20) (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (1));
-     if(data & 0x10) (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (0));
+     if(data & 0x20) (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << (1));
+     if(data & 0x10) (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << (0));
         toggle_e();
 
 
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (3));
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (2));
-        (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (1));
-        (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (0));
+        (*(volatile uint8_t *)((0x05) + 0x20)) &= ~(1 << (1));
+        (*(volatile uint8_t *)((0x05) + 0x20)) &= ~(1 << (0));
      if(data & 0x08) (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (3));
      if(data & 0x04) (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (2));
-     if(data & 0x02) (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (1));
-     if(data & 0x01) (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (0));
+     if(data & 0x02) (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << (1));
+     if(data & 0x01) (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << (0));
         toggle_e();
 
 
-        (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (0));
-        (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (1));
+        (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << (0));
+        (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << (1));
         (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (2));
         (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (3));
     }
@@ -657,28 +657,28 @@ static uint8_t lcd_read(uint8_t rs)
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (4));
     (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (5));
 
-    if ( ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20))) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) ) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) )
+    if ( ( &(*(volatile uint8_t *)((0x05) + 0x20)) == &(*(volatile uint8_t *)((0x05) + 0x20))) && ( &(*(volatile uint8_t *)((0x05) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) ) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) )
       && ( 0 == 0 )&& (1 == 1) && (2 == 2) && (3 == 3) )
     {
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) &= 0xF0;
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) &= 0xF0;
 
         (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (6));;
         _delay_us(1);
-        data = (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) << 4;
+        data = (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 2)) << 4;
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (6));;
 
         _delay_us(1);
 
         (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (6));;
         _delay_us(1);
-        data |= (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2))&0x0F;
+        data |= (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 2))&0x0F;
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (6));;
     }
     else
     {
 
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) &= ~(1 << (0));
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) &= ~(1 << (1));
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) &= ~(1 << (0));
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) &= ~(1 << (1));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) &= ~(1 << (2));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) &= ~(1 << (3));
 
@@ -686,8 +686,8 @@ static uint8_t lcd_read(uint8_t rs)
         (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (6));;
         _delay_us(1);
         data = 0;
-        if ( (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) & (1 << (0)) ) data |= 0x10;
-        if ( (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) & (1 << (1)) ) data |= 0x20;
+        if ( (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 2)) & (1 << (0)) ) data |= 0x10;
+        if ( (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 2)) & (1 << (1)) ) data |= 0x20;
         if ( (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) & (1 << (2)) ) data |= 0x40;
         if ( (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) & (1 << (3)) ) data |= 0x80;
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (6));;
@@ -697,8 +697,8 @@ static uint8_t lcd_read(uint8_t rs)
 
         (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (6));;
         _delay_us(1);
-        if ( (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) & (1 << (0)) ) data |= 0x01;
-        if ( (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) & (1 << (1)) ) data |= 0x02;
+        if ( (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 2)) & (1 << (0)) ) data |= 0x01;
+        if ( (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 2)) & (1 << (1)) ) data |= 0x02;
         if ( (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) & (1 << (2)) ) data |= 0x04;
         if ( (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 2)) & (1 << (3)) ) data |= 0x08;
         (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (6));;
@@ -869,19 +869,19 @@ void lcd_init(uint8_t dispAttr)
 
 
 
-    if ( ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20))) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) ) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) )
-      && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20))) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20))) && (&(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)))
+    if ( ( &(*(volatile uint8_t *)((0x05) + 0x20)) == &(*(volatile uint8_t *)((0x05) + 0x20))) && ( &(*(volatile uint8_t *)((0x05) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) ) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) )
+      && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x05) + 0x20))) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x05) + 0x20))) && (&(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x05) + 0x20)))
       && (0 == 0 ) && (1 == 1) && (2 == 2) && (3 == 3)
       && (4 == 4 ) && (5 == 5) && (6 == 6 ) )
     {
 
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= 0x7F;
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) |= 0x7F;
     }
-    else if ( ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20))) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) ) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) )
+    else if ( ( &(*(volatile uint8_t *)((0x05) + 0x20)) == &(*(volatile uint8_t *)((0x05) + 0x20))) && ( &(*(volatile uint8_t *)((0x05) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) ) && ( &(*(volatile uint8_t *)((0x0B) + 0x20)) == &(*(volatile uint8_t *)((0x0B) + 0x20)) )
            && (0 == 0 ) && (1 == 1) && (2 == 2) && (3 == 3) )
     {
 
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= 0x0F;
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) |= 0x0F;
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (4));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (5));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (6));
@@ -892,16 +892,16 @@ void lcd_init(uint8_t dispAttr)
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (4));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (5));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (6));
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (0));
-        (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (1));
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) |= (1 << (0));
+        (*(&(*(volatile uint8_t *)((0x05) + 0x20)) - 1)) |= (1 << (1));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (2));
         (*(&(*(volatile uint8_t *)((0x0B) + 0x20)) - 1)) |= (1 << (3));
     }
     _delay_us(16000);
 
 
-    (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (1));
-    (*(volatile uint8_t *)((0x0B) + 0x20)) |= (1 << (0));
+    (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << (1));
+    (*(volatile uint8_t *)((0x05) + 0x20)) |= (1 << (0));
     toggle_e();
     _delay_us(5000);
 
@@ -914,7 +914,7 @@ void lcd_init(uint8_t dispAttr)
     _delay_us(64);
 
 
-    (*(volatile uint8_t *)((0x0B) + 0x20)) &= ~(1 << (0));
+    (*(volatile uint8_t *)((0x05) + 0x20)) &= ~(1 << (0));
     toggle_e();
     _delay_us(64);
 # 585 "lcd.c"
