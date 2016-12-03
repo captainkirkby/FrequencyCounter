@@ -34,7 +34,7 @@ F_CPU = 16000000
 
 
 # Target file name (without extension).
-TARGET =  freq_counter
+TARGET =  main
 
 
 # List C source files here. (C dependencies are automatically generated.)
