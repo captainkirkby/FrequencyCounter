@@ -10,17 +10,19 @@
 #include <stdlib.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <util/delay.h>
 #include "lcd.h"
 
 #define CYCLES_PER_OVERFLOW (1UL << 16)
 #define MILIHERTZ_PER_CYCLE (16000000000ULL)
+#define FOOT_CANDLES_PER_HERTZ 3.928
 #define STR_LEN 33
 #define DEBUG 0
 
 // See spreadsheet for experimental fudge factor determination
 // http://tinyurl.com/jcfmb7h
-#define FUDGE_FACTOR ((188.547 * overflows) - 273.71)
-
+// #define FUDGE_FACTOR ((188.547 * overflows) - 273.71)
+#define FUDGE_FACTOR ((56.693 * overflows) - 4.6)
 
 typedef enum {
     WAITING,
@@ -56,6 +58,8 @@ void init(void) {
     initTimer();
     // Initialize display, cursor off
     lcd_init(LCD_DISP_ON);
+    lcd_puts("Luxmeter\nPat Kezer\nDylan Kirkby\nWill Tran");
+    _delay_ms(500);
     sei();
 }
 
@@ -91,25 +95,34 @@ void initTimer(void) {
 void loop(void) {
     State nextState;
     uint32_t millihertz;
-    uint32_t freqInt;
-    uint32_t freqFrac;
+    uint32_t milliFootCandles;
+    uint32_t integerPart;
+    uint32_t fractionalPart;
 
     if (state == DISPLAYING) {
         // Display Data
         cyclesElapsed += FUDGE_FACTOR;
-        millihertz = MILIHERTZ_PER_CYCLE / cyclesElapsed;       
+        millihertz = MILIHERTZ_PER_CYCLE / cyclesElapsed;
 
-        freqInt = millihertz / 1000;
-        freqFrac = millihertz % 1000;
+        milliFootCandles = millihertz * FOOT_CANDLES_PER_HERTZ;       
+
+        integerPart = milliFootCandles / 1000;
+        fractionalPart = milliFootCandles % 1000;
     
         // Write to LCD
         lcd_clrscr();
-        sprintf(displayString, "%lu.", freqInt);
+        sprintf(displayString, "%lu.", integerPart);
         lcd_puts(displayString);
-        sprintf(displayString, "%03lu Hz\n", freqFrac);
+        sprintf(displayString, "%03lu ft-c\n", fractionalPart);
         lcd_puts(displayString);
 
         if (DEBUG) {
+            integerPart = millihertz / 1000;
+            fractionalPart = millihertz % 1000;
+            sprintf(displayString, "%lu.", integerPart);
+            lcd_puts(displayString);
+            sprintf(displayString, "%03lu Hz\n", fractionalPart);
+            lcd_puts(displayString);
             sprintf(displayString, "%lu\n", cyclesElapsed);
             lcd_puts(displayString);
             sprintf(displayString, "%lu\n", overflows);
