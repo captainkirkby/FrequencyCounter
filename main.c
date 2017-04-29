@@ -12,23 +12,30 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include "uart.h"
+#include "debug.h"
+
+/********************************************
+ *  Change these values to change operation *
+ ********************************************/
+
+#define UPDATES_PER_MINUTE (100)
+#define UART_BAUD_RATE (9600)
+#define DEBUG LEVEL_1
+
+/********************************************
+ *  Utility #define statements              *
+ ********************************************/
 
 #define CYCLES_PER_OVERFLOW (1UL << 16)
 #define MILIHERTZ_PER_CYCLE (16000000000ULL)
-#define STR_LEN 50
-#define DISPLAY_MUX_CONSTANT 6
-#define LEVEL_0 0
-#define LEVEL_1 1
-#define LEVEL_2 2
+#define STR_LEN (50)
+#define SEC_PER_MIN (60)
+#define TOV_PER_SEC (244)
+#define DISPLAY_MUX_CONSTANT ((UPDATES_PER_MINUTE / SEC_PER_MIN) * TOV_PER_SEC)
 
-
-#define UART_BAUD_RATE      9600      
-
-
-
-#define DEBUG LEVEL_1
-
-
+/********************************************
+ *  Calibration *
+ ********************************************/
 
 // See spreadsheet for experimental Hz to GPH determination
 // https://tinyurl.com/zdstpnf
@@ -40,21 +47,34 @@ typedef enum {
     DISPLAYING
 } State;
 
+
+/********************************************
+ *  Globals                                 *
+ ********************************************/
+
 // Volatile shared memory
+volatile uint16_t displayMuxCount;
 volatile uint32_t overflows;
 volatile uint32_t cyclesElapsed;
 volatile State state;
-uint8_t charsPrinted;
 
 // Nonvolatile globals
 char displayString[STR_LEN];
-uint8_t doNotDisplay;
+uint8_t charsPrinted;
+
+/********************************************
+ *  Function Prototypes                     *
+ ********************************************/
 
 void init(void);
 void initInputs(void);
 void initINT0(void);
 void initTimer(void);
 void loop(void);
+
+/********************************************
+ *  Function Definitions                    *
+ ********************************************/
 
 int main(void) {
     init();
@@ -70,7 +90,7 @@ void init(void) {
     initTimer();
     uart_init(UART_BAUD_SELECT(UART_BAUD_RATE, F_CPU)); 
     uart_puts("Flow Meter\nDylan Kirkby\n\n");
-    doNotDisplay = 0;
+    displayMuxCount = 0;
     sei();
 }
 
@@ -119,7 +139,7 @@ void loop(void) {
 
         milliGPH = MILLIHZ_TO_MILLIGPH;
 
-        if (!doNotDisplay) {
+        if (displayMuxCount == DISPLAY_MUX_CONSTANT) {
 
             if (DEBUG == LEVEL_0) {
                 while (charsPrinted) {
@@ -150,10 +170,11 @@ void loop(void) {
                 sprintf(displayString, "%lu\n", overflows);
                 uart_puts(displayString);                   
             }
+
+            // Reset count
+            displayMuxCount = 0;
             
         }
-
-        doNotDisplay = (doNotDisplay + 1) % DISPLAY_MUX_CONSTANT; 
 
         nextState = WAITING;
     }
@@ -164,9 +185,15 @@ void loop(void) {
     state = nextState;
 }
 
-// Timer Overflow Interrupt
+/********************************************
+ *  Interrupt Service Routines              *
+ ********************************************/
+
+// Timer Overflow Interrupt (occurs once every 2^16 cycles = .004096 seconds = 244 times per second)
 ISR(TIMER1_OVF_vect) {
     ++overflows;
+    // Update the display UPDATES_PER_MINUTE times per minute
+    displayMuxCount = (displayMuxCount >= DISPLAY_MUX_CONSTANT) ? displayMuxCount : displayMuxCount + 1;
 }
 
 // Falling Edge Interrupt

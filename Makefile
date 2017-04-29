@@ -164,7 +164,7 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 AVRDUDE_PROGRAMMER = arduino
 
 # usb, com1 = serial port, lpt1 = parallel port 
-AVRDUDE_PORT = /dev/cu.usbmodem1421
+AVRDUDE_PORT = /dev/cu.usbmodem1411
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
