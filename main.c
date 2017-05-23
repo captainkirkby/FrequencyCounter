@@ -20,7 +20,7 @@
 
 #define UPDATES_PER_MINUTE (100)
 #define UART_BAUD_RATE (9600)
-#define DEBUG LEVEL_1
+#define DEBUG LEVEL_0
 
 /********************************************
  *  Utility #define statements              *
@@ -89,7 +89,9 @@ void init(void) {
     initINT0();
     initTimer();
     uart_init(UART_BAUD_SELECT(UART_BAUD_RATE, F_CPU)); 
-    uart_puts("Flow Meter\nDylan Kirkby\n\n");
+    if (DEBUG != LEVEL_0) {
+        uart_puts("Flow Meter\nDylan Kirkby\n\n");
+    }
     displayMuxCount = 0;
     sei();
 }
@@ -139,15 +141,19 @@ void loop(void) {
 
         milliGPH = MILLIHZ_TO_MILLIGPH;
 
-        if (displayMuxCount == DISPLAY_MUX_CONSTANT) {
+        if (DEBUG == LEVEL_0 && (uart_getc() != UART_NO_DATA)) {
+            // uart_putc(rx);
+            integerPart = milliGPH / 1000;
+            fractionalPart = milliGPH % 1000;
+            sprintf(displayString, "%lu.", integerPart);
+            uart_puts(displayString);
+            charsPrinted += strlen(displayString);
+            sprintf(displayString, "%03lu GPH\n", fractionalPart);
+            uart_puts(displayString);
+            charsPrinted += strlen(displayString);
+        }
 
-            if (DEBUG == LEVEL_0) {
-                while (charsPrinted) {
-                    charsPrinted--;
-                    uart_puts("\b");
-                }
-            }
-        
+        if (!DEBUG == LEVEL_0 && displayMuxCount == DISPLAY_MUX_CONSTANT) {
             integerPart = milliGPH / 1000;
             fractionalPart = milliGPH % 1000;
             sprintf(displayString, "%lu.", integerPart);
